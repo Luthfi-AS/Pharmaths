@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e3748c50dd45bb4284b9398008214da, type: 3}
+  m_Name: 06_Cetirizine
+  m_EditorClassIdentifier: 
+  medicineTitle: Cetirizine
+  medicineCategory: ALERGI
+  medicineIcon: {fileID: 21300000, guid: 6a752984aa6126b4a8a80cbc9b5d86b3, type: 3}
+  medicineDescription: Antihistamin untuk meredakan gejala alergi seperti gatal dan
+    bersin dengan menghambat zat histamin penyebab reaksi berlebihan sistem kekebalan
+    tubuh pasien.
+  baseDoseFormula: (WBC/1000) + (BMI x 1.2) + (Temp x 0.5)
+  logicRules:
+  - paramIcon: {fileID: 21300000, guid: 4c429e5beb3e14a47ae18376c4974b95, type: 3}
+    conditionText: WBC > 10000 & HR > 105
+    resultFormula: (Base x 1.35) + 3.8
+  - paramIcon: {fileID: 21300000, guid: 4c429e5beb3e14a47ae18376c4974b95, type: 3}
+    conditionText: "WBC > 10000 & HR \u2264 105"
+    resultFormula: (Base x 1.2) + (VAS x 0.9)
+  - paramIcon: {fileID: 21300000, guid: 4c429e5beb3e14a47ae18376c4974b95, type: 3}
+    conditionText: "WBC \u2264 10000 & BMI > 23"
+    resultFormula: Base + (SBP / 50)
+  defaultRuleLabel: ELSE USE DEFAULT DOSE

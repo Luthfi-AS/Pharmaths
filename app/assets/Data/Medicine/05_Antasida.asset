@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e3748c50dd45bb4284b9398008214da, type: 3}
+  m_Name: 05_Antasida
+  m_EditorClassIdentifier: 
+  medicineTitle: Antasida
+  medicineCategory: MAAG
+  medicineIcon: {fileID: 21300000, guid: 6c3b6412743bdff49bfa7b0cb8b246d7, type: 3}
+  medicineDescription: Obat penetral asam lambung untuk meredakan nyeri ulu hati,
+    mual, dan perih pada dinding lambung akibat iritasi atau produksi asam berlebih.
+  baseDoseFormula: (VAS x 4) + (BMI x 0.8) + (SBP / 20)
+  logicRules:
+  - paramIcon: {fileID: 21300000, guid: d6d8dc4587e4a5d4d857954030708ae7, type: 3}
+    conditionText: "VAS \u2265 9 & HR \u2265 105"
+    resultFormula: (Base x 1.4) + 6.2
+  - paramIcon: {fileID: 21300000, guid: d6d8dc4587e4a5d4d857954030708ae7, type: 3}
+    conditionText: "VAS \u2265 9 & HR < 105"
+    resultFormula: (Base x 1.25) + (RR x 0.2)
+  - paramIcon: {fileID: 21300000, guid: d6d8dc4587e4a5d4d857954030708ae7, type: 3}
+    conditionText: "VAS < 9 & BMI \u2264 20"
+    resultFormula: Base x 0.85
+  defaultRuleLabel: ELSE USE DEFAULT DOSE

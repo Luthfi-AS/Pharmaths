@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c944f4126379b04d9c7c4b159b8154f, type: 3}
+  m_Name: 05_GastritisMaag
+  m_EditorClassIdentifier: 
+  diseaseName: Gastritis/Maag
+  urgency: 1
+  description: Inflamasi atau iritasi pada dinding lambung akibat produksi asam lambung
+    berlebih. Karakteristik paling menonjol adalah skala nyeri (VAS) yang sangat
+    tinggi di area ulu hati meskipun sebagian besar parameter vital numerik lainnya
+    berada dalam batas normal.
+  icon: {fileID: 21300000, guid: 5b828d8c4236d2247bce54e75561c589, type: 3}
+  vitals:
+    dbp: 60 - 80 mmHg
+    sbp: 100 - 120 mmHg
+    temperature: "36.5 - 37.5 \xB0C"
+    respRate: 16 - 20 x/mnt
+    spo2: 98 - 100 %
+    heartRate: 90 - 110 BPM
+  labResults:
+    gds: 70 - 110 mg/dL
+    wbc: "4k - 8k /mm\xB3"
+    vas: 7 - 9 / 10
+    bmi: "18 - 24 kg/m\xB2"
+  correctMedication: Antasida
+  medicalNote: 

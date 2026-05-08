@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e3748c50dd45bb4284b9398008214da, type: 3}
+  m_Name: 02_Amoxicillin
+  m_EditorClassIdentifier: 
+  medicineTitle: Amoxicillin
+  medicineCategory: INFEKSI
+  medicineIcon: {fileID: 21300000, guid: ab495e9a025d93e42943a77cd12025db, type: 3}
+  medicineDescription: Antibiotik penanganan infeksi bakteri sistemik, ditandai lonjakan
+    drastis sel darah putih (leukositosis) serta suhu tubuh tinggi yang cenderung
+    bersifat lebih menetap.
+  baseDoseFormula: (WBC/1000) + (BMI x 1.5) + (Temp x 2)
+  logicRules:
+  - paramIcon: {fileID: 21300000, guid: 4c429e5beb3e14a47ae18376c4974b95, type: 3}
+    conditionText: "WBC \u2265 17K & Temp \u2265 39.5"
+    resultFormula: (Base x 1.6) + (RR x 0.5)
+  - paramIcon: {fileID: 21300000, guid: 4c429e5beb3e14a47ae18376c4974b95, type: 3}
+    conditionText: "WBC \u2265 17K & Temp < 39.5"
+    resultFormula: (Base x 1.4) + 12.5
+  - paramIcon: {fileID: 21300000, guid: 4c429e5beb3e14a47ae18376c4974b95, type: 3}
+    conditionText: "WBC < 17K & VAS \u2265 5"
+    resultFormula: Base + (HR / 10)
+  defaultRuleLabel: ELSE USE DEFAULT DOSE

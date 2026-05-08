@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5e3748c50dd45bb4284b9398008214da, type: 3}
+  m_Name: 04_Insulin Pen
+  m_EditorClassIdentifier: 
+  medicineTitle: Insulin Pen
+  medicineCategory: DIABETES
+  medicineIcon: {fileID: 21300000, guid: 7fb1f15f29a45e44cb1b7049fad25620, type: 3}
+  medicineDescription: Hormon injeksi untuk mengontrol kadar gula darah tinggi dengan
+    cara membantu penyerapan glukosa ke dalam sel tubuh pada pasien diabetes melitus.
+  baseDoseFormula: ((GDS - 200)/10) + (BMI x 0.5) + (SBP/100)
+  logicRules:
+  - paramIcon: {fileID: 21300000, guid: 41089ba7acd64334dafa7124bee36a9a, type: 3}
+    conditionText: GDS > 350
+    resultFormula: (Base x 1.5) + (BMI x 0.2)
+  - paramIcon: {fileID: 21300000, guid: 41089ba7acd64334dafa7124bee36a9a, type: 3}
+    conditionText: "GDS \u2265 300 & GDS \u2264 350"
+    resultFormula: (Base x 1.25) + 5.5
+  - paramIcon: {fileID: 21300000, guid: 41089ba7acd64334dafa7124bee36a9a, type: 3}
+    conditionText: GDS < 300 & SBP > 150
+    resultFormula: Base + (SBP / 50)
+  defaultRuleLabel: ELSE USE DEFAULT DOSE

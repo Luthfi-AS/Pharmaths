@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c944f4126379b04d9c7c4b159b8154f, type: 3}
+  m_Name: 08_InflamasiOtot
+  m_EditorClassIdentifier: 
+  diseaseName: Inflamasi Otot
+  urgency: 0
+  description: Peradangan pada jaringan otot atau sendi yang biasanya dipicu oleh
+    trauma fisik, aktivitas berlebih, atau beban mekanis. Fokus diagnosa adalah pada
+    intensitas nyeri (VAS) yang tinggi tanpa adanya tanda-tanda infeksi sistemik
+    (WBC dan Suhu normal).
+  icon: {fileID: 21300000, guid: 8a22e1fad5b090040a9a5bb7bc89b86e, type: 3}
+  vitals:
+    dbp: 80 - 85 mmHg
+    sbp: 120 - 135 mmHg
+    temperature: "36.0 - 37.2 \xB0C"
+    respRate: 12 - 18 x/mnt
+    spo2: 98 - 100 %
+    heartRate: 70 - 90 BPM
+  labResults:
+    gds: 80 - 130 mg/dL
+    wbc: "5k - 9k /mm\xB3"
+    vas: 6 - 8 / 10
+    bmi: "22 - 32 kg/m\xB2"
+  correctMedication: Ibuprofen
+  medicalNote: 

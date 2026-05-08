@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1060680271665",
+    "project_id": "pharmath-ar",
+    "storage_bucket": "pharmath-ar.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1060680271665:android:3c7478277fab382d269210",
+        "android_client_info": {
+          "package_name": "com.DefaultCompany.Pharmath"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAAedhC67Hf7EB4ywD-u00bVV7afQig8Gs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
