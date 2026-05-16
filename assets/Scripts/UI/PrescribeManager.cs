@@ -59,20 +59,35 @@ public class PrescribeManager : MonoBehaviour
 
     private void UpdateDisplay()
     {
-        // Mengaktifkan model yang dipilih dan mematikan sisanya
-        for (int i = 0; i < medicineModels.Count; i++)
+        if (medicineModels.Count == 0) return;
+
+        // Mematikan SEMUA child di bawah medicineStudio
+        foreach (Transform child in medicineStudio)
         {
-            if (medicineModels[i] != null)
+            if (child != null) 
             {
-                medicineModels[i].SetActive(i == currentIndex);
+                child.gameObject.SetActive(false);
             }
         }
 
-        // Update teks judul obat
-        if (medicineTitle != null && currentIndex < medicineNames.Length)
+        // Mengaktifkan objek yang berada di index yang sedang dipilih
+        if (currentIndex >= 0 && currentIndex < medicineModels.Count)
+    {
+        GameObject modelTarget = medicineModels[currentIndex];
+        
+        if (modelTarget != null)
         {
-            medicineTitle.text = medicineNames[currentIndex];
+            modelTarget.SetActive(true);
+            
+            // Mengambil teks langsung dari nama objek di Hierarchy!
+            if (medicineTitle != null)
+            {
+                medicineTitle.text = modelTarget.name; 
+            }
+            
+            Debug.Log("[PrescribeManager] Menampilkan model: " + modelTarget.name);
         }
+    }
         
         // Reset input dosis setiap ganti obat
         if (doseInput != null)
