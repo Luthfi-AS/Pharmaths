@@ -1,7 +1,10 @@
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using System.Collections;
 using System.Collections.Generic;
+using Firebase.Database;
+using Firebase.Extensions;
 
 public class PrescribeManager : MonoBehaviour
 {
@@ -14,8 +17,11 @@ public class PrescribeManager : MonoBehaviour
     [SerializeField] private Transform medicineStudio; 
     [SerializeField] private List<GameObject> medicineModels;
     [SerializeField] private float rotationSpeed = 20f;
+    [SerializeField] private TextMeshProUGUI txtDiagnosis; // Menampilkan diagnosis dokter
 
     private int currentIndex = 0;
+    private DatabaseReference diagnosisRef;
+    private bool isListening = false;
 
     // Nama obat sesuai urutan model di list
     private string[] medicineNames = { 
@@ -31,6 +37,8 @@ public class PrescribeManager : MonoBehaviour
         {
             prescribeBtn.onClick.AddListener(OnPrescribeClicked);
         }
+
+        StartCoroutine(WaitForFirebaseAndListen());
     }
 
     void Update()
@@ -115,7 +123,61 @@ public class PrescribeManager : MonoBehaviour
     private void CheckValidation(string medicine, string dose)
     {
         // Logika Game: Jika salah pilih atau dosis tidak tepat, status Malapraktik.
-        // Jika benar, lanjut ke pasien berikutnya.
+        // Jika benar, lanjut ke pasien berikutnya. (Ongoing)
         Debug.Log("Memvalidasi tindakan medis...");
+    }
+
+    // Fungsi untuk menunggu Firebase siap dan mulai listening perubahan diagnosa dokter
+    private IEnumerator WaitForFirebaseAndListen()
+    {
+        while (FirebaseManager.Instance == null || FirebaseManager.Instance.DBReference == null)
+        {
+            yield return null;
+        }
+
+        if (string.IsNullOrEmpty(GameSession.RoomID))
+        {
+            Debug.LogError("RoomID belum tersedia, tidak dapat mendengarkan diagnosa.");
+            yield break;
+        }
+
+        diagnosisRef = FirebaseManager.Instance.DBReference
+            .Child("rooms")
+            .Child(GameSession.RoomID)
+            .Child("doctorDiagnosis");
+
+        diagnosisRef.ValueChanged += HandleDiagnosisChanged;
+        isListening = true;
+
+        yield break;
+    }
+
+    private void HandleDiagnosisChanged(object sender, ValueChangedEventArgs args)
+    {
+        if (args.DatabaseError != null) return;
+
+        if (args.Snapshot.Exists)
+        {
+            string diagnosis = args.Snapshot.Value.ToString();
+            // tampilkan diagnosis di UI
+            if (txtDiagnosis != null)
+            {
+                txtDiagnosis.text = "Diagnosis: " + diagnosis;
+            }
+            Debug.Log("Diagnosa diterima: " + diagnosis);
+        }
+        else if (txtDiagnosis != null)
+        {
+            txtDiagnosis.text = "Diagnosis belum diterima";
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (diagnosisRef != null && isListening)
+        {
+            diagnosisRef.ValueChanged -= HandleDiagnosisChanged;
+            isListening = false;
+        }
     }
 }
