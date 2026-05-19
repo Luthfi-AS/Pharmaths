@@ -24,10 +24,25 @@ public class MainMenuManager : MonoBehaviour
 
         if (versionText != null) versionText.text = buildVersion;
         if (modalRoomSelection != null) modalRoomSelection.SetActive(false);
+        AudioManager.Instance.PlayBGM(AudioManager.Instance.bgm1);
     }
 
-    public void OnPlayButtonClicked() => modalRoomSelection.SetActive(true);
-    public void CloseModal() => modalRoomSelection.SetActive(false);
+    public void OnPlayButtonClicked()
+    {
+        // 1. Putar SFX Klik
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
+        
+        // 2. Tampilkan Modal Room Selection
+        modalRoomSelection.SetActive(true);
+    }
+    
+    // Untuk CloseModal, karena cuma 1 baris, pakai => tetap aman dan rapi
+    public void CloseModal() 
+    {
+        // Tambahin SFX klik juga pas nutup modal biar konsisten, boss!
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
+        modalRoomSelection.SetActive(false);
+    }
 
     // --- LOGIKA CREATE ROOM ---
     public void CreateRoom()
@@ -81,13 +96,16 @@ public class MainMenuManager : MonoBehaviour
         {
             GameSession.RoomID = enteredCode;
             GameSession.IsHost = false;
-
+            
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.succeedStatus);
+            
             Debug.Log($"Mencoba bergabung ke Room: {enteredCode}");
             SceneManager.LoadScene(playSceneName);
         }
         else
         {
             // Berikan feedback yang lebih spesifik
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.failedStatus);
             Debug.LogWarning("Kode ruangan harus 6 karakter!");
         }
     }

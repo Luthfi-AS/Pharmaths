@@ -16,6 +16,7 @@ public class LobbyManager : MonoBehaviour
     [Header("Asymmetric Scene Settings")]
     [SerializeField] private string doctorSceneName = "DoctorScan";
     [SerializeField] private string pharmacistSceneName = "PharmacistScan";
+    [SerializeField] private string mainMenuSceneName = "MainMenu"; // Sesuaikan dengan nama scene Main Menu kamu
 
     private string myRolePath;
     private DatabaseReference roomRef;
@@ -23,6 +24,12 @@ public class LobbyManager : MonoBehaviour
 
     private void Start()
     {
+        // Putar BGM Lobby otomatis pas masuk scene ini
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayBGM(AudioManager.Instance.bgm2);
+        }
+
         // 1. Inisialisasi UI lokal dengan ID Room dari sesi saat ini
         if (txtRoomId != null) txtRoomId.text = GameSession.RoomID;
 
@@ -53,18 +60,66 @@ public class LobbyManager : MonoBehaviour
 
     private void JoinRoomInDatabase()
     {
-        // Mengirim data perangkat ke node 'players' sesuai role
+        // 1. Buat data dengan isReady yang pasti false dari awal
         PlayerData myData = new PlayerData(SystemInfo.deviceName);
+        myData.isReady = false; // Garansi paksa false sebelum dikirim
+        
         string json = JsonUtility.ToJson(myData);
 
-        roomRef.Child("players").Child(myRolePath).SetRawJsonValueAsync(json);
+        // 2. Set nilai ke Firebase menggunakan async task
+        roomRef.Child("players").Child(myRolePath).SetRawJsonValueAsync(json).ContinueWithOnMainThread(task => {
+            if (task.IsFaulted || task.IsCanceled)
+            {
+                Debug.LogError($"[{myRolePath.ToUpper()}] Gagal join ke database: " + task.Exception);
+                return;
+            }
+
+            if (task.IsCompleted)
+            {
+                // 3. AMAN: Bersihkan sisa status 'true' di cloud akibat session game sebelumnya
+                roomRef.Child("players").Child(myRolePath).Child("isReady").SetValueAsync(false);
+                Debug.Log($"[{myRolePath.ToUpper()}] Berhasil masuk database dengan status NOT READY.");
+            }
+        });
     }
 
     public void OnReadyButtonClicked()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
+        }
+
         // Menentukan status ready berdasarkan badge yang aktif saat ini (toggle)
         bool currentStatus = (myRolePath == "doctor") ? badgeDoctorReady.activeSelf : badgePharmacistReady.activeSelf;
         roomRef.Child("players").Child(myRolePath).Child("isReady").SetValueAsync(!currentStatus);
+    }
+
+    // --- FUNGSI BARU: LEAVE LOBBY ---
+    public void OnLeaveButtonClicked()
+    {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
+        }
+
+        Debug.Log($"[{myRolePath.ToUpper()}] Meninggalkan lobby, menghapus data di Firebase...");
+
+        // 1. Matikan listener terlebih dahulu agar tidak memicu pembaruan UI saat data dihapus
+        StopListeningForChanges();
+
+        // 2. Hapus data role player ini dari Firebase agar slot kembali kosong
+        if (roomRef != null && !string.IsNullOrEmpty(myRolePath))
+        {
+            roomRef.Child("players").Child(myRolePath).RemoveValueAsync().ContinueWithOnMainThread(task => {
+                // 3. Kembali ke Main Menu setelah data dihapus dari cloud
+                SceneManager.LoadScene(mainMenuSceneName);
+            });
+        }
+        else
+        {
+            SceneManager.LoadScene(mainMenuSceneName);
+        }
     }
 
     private void StartListeningForChanges()
@@ -80,6 +135,19 @@ public class LobbyManager : MonoBehaviour
         isListening = true;
     }
 
+    private void StopListeningForChanges()
+    {
+        if (!isListening) return;
+
+        if (roomRef != null)
+        {
+            roomRef.Child("players").ValueChanged -= HandlePlayersChanged;
+            roomRef.Child("metadata").Child("gameStarted").ValueChanged -= HandleGameStartedChanged;
+        }
+
+        isListening = false;
+    }
+
     private void HandlePlayersChanged(object sender, ValueChangedEventArgs args)
     {
         if (args.DatabaseError != null) return;
@@ -88,22 +156,48 @@ public class LobbyManager : MonoBehaviour
         bool doctorReady = false;
         bool pharmacistReady = false;
 
-        // Update UI dan status Dokter
+        // Update UI dan status Dokter (Validasi Ketat)
         if (playersSnapshot.HasChild("doctor"))
         {
             var doc = playersSnapshot.Child("doctor");
-            txtDoctorName.text = doc.Child("name").Value.ToString();
-            doctorReady = (bool)doc.Child("isReady").Value;
+            
+            if (doc.HasChild("name") && doc.Child("name").Value != null)
+                txtDoctorName.text = doc.Child("name").Value.ToString();
+            
+            if (doc.HasChild("isReady") && doc.Child("isReady").Value != null)
+                doctorReady = (bool)doc.Child("isReady").Value;
+            else
+                doctorReady = false;
+
             badgeDoctorReady.SetActive(doctorReady);
         }
+        else
+        {
+            // Jika data dokter belum ada/keluar, reset UI ke default
+            txtDoctorName.text = "Waiting for Player...";
+            badgeDoctorReady.SetActive(false);
+        }
 
-        // Update UI dan status Apoteker
+        // Update UI dan status Apoteker (Validasi Ketat)
         if (playersSnapshot.HasChild("pharmacist"))
         {
             var phar = playersSnapshot.Child("pharmacist");
-            txtPharmacistName.text = phar.Child("name").Value.ToString();
-            pharmacistReady = (bool)phar.Child("isReady").Value;
+            
+            if (phar.HasChild("name") && phar.Child("name").Value != null)
+                txtPharmacistName.text = phar.Child("name").Value.ToString();
+            
+            if (phar.HasChild("isReady") && phar.Child("isReady").Value != null)
+                pharmacistReady = (bool)phar.Child("isReady").Value;
+            else
+                pharmacistReady = false;
+
             badgePharmacistReady.SetActive(pharmacistReady);
+        }
+        else
+        {
+            // Jika data apoteker belum ada/keluar, reset UI ke default
+            txtPharmacistName.text = "Waiting for Player...";
+            badgePharmacistReady.SetActive(false);
         }
 
         // Hanya Host yang memiliki otoritas untuk mengubah status gameStarted di Firebase
@@ -118,7 +212,7 @@ public class LobbyManager : MonoBehaviour
         if (args.DatabaseError != null) return;
 
         // Jika nilai gameStarted berubah menjadi 'true', semua pemain pindah scene
-        if (args.Snapshot.Exists && (bool)args.Snapshot.Value == true)
+        if (args.Snapshot.Exists && args.Snapshot.Value != null && (bool)args.Snapshot.Value == true)
         {
             TransitionToAsymmetricScene();
         }
@@ -132,6 +226,11 @@ public class LobbyManager : MonoBehaviour
 
     private void TransitionToAsymmetricScene()
     {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.transitionAR);
+        }
+
         // Menentukan scene mana yang dimuat berdasarkan peran masing-masing pemain
         if (GameSession.SelectedRole == PlayerRole.Doctor)
         {
@@ -145,11 +244,6 @@ public class LobbyManager : MonoBehaviour
 
     private void OnDestroy()
     {
-        // Membersihkan listener untuk mencegah kebocoran memori (Memory Leak)
-        if (roomRef != null && isListening)
-        {
-            roomRef.Child("players").ValueChanged -= HandlePlayersChanged;
-            roomRef.Child("metadata").Child("gameStarted").ValueChanged -= HandleGameStartedChanged;
-        }
+        StopListeningForChanges();
     }
 }
