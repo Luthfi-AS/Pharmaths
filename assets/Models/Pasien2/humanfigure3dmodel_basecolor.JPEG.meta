@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: f4bda3663ac9e124fbfde67336c6ae4d
+guid: 22988e6515aef5646ad5456f4452c3ca
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -94,7 +94,7 @@ TextureImporter:
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
   - serializedVersion: 4
-    buildTarget: WebGL
+    buildTarget: Android
     maxTextureSize: 2048
     resizeAlgorithm: 0
     textureFormat: -1
