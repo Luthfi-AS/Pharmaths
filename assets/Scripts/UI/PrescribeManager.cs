@@ -9,10 +9,34 @@ using Firebase.Extensions;
 public class PrescribeManager : MonoBehaviour
 {
     [Header("UI References")]
+    [SerializeField] private GameObject canvasPrescribe; // <-- BARU: Referensi untuk menutup Canvas Prescribe
     [SerializeField] private TMP_Text medicineTitle;
     [SerializeField] private TMP_InputField doseInput;
     [SerializeField] private Button prescribeBtn;
     [SerializeField] private TextMeshProUGUI txtDiagnosis; 
+
+    [Header("Result Modal UI (Logic)")]
+    [SerializeField] private GameObject resultModalCanvas;
+    [SerializeField] private TextMeshProUGUI txtResultStatus;
+    [SerializeField] private TextMeshProUGUI txtResultMessage;
+    [SerializeField] private Button btnResultAction;
+    [SerializeField] private Color colorWin = new Color(0.1f, 0.8f, 0.1f); // Hijau
+    [SerializeField] private Color colorLose = Color.red;
+
+    [Header("Result Modal UI (Sprites)")]
+    [Tooltip("Komponen Image dari Ikon Result di Canvas")]
+    [SerializeField] private Image imgResultIcon;     
+    [Tooltip("Masukkan Sprite Ikon Berhasil (Checklist)")]
+    [SerializeField] private Sprite spriteSuccessIcon; 
+    [Tooltip("Masukkan Sprite Ikon Gagal (Silang)")]
+    [SerializeField] private Sprite spriteFailIcon;    
+    
+    [Tooltip("Komponen Image dari Tombol Action (Lanjut/Ulangi)")]
+    [SerializeField] private Image imgBtnAction;      
+    [Tooltip("Masukkan Sprite Tombol Lanjut (Berisi Teks Lanjut)")]
+    [SerializeField] private Sprite spriteBtnNext;     
+    [Tooltip("Masukkan Sprite Tombol Ulang (Berisi Teks Ulang)")]
+    [SerializeField] private Sprite spriteBtnRetry;    
 
     [Header("3D Model References")]
     [SerializeField] private Transform medicineStudio; 
@@ -33,30 +57,26 @@ public class PrescribeManager : MonoBehaviour
     // Variabel Firebase
     private DatabaseReference caseRef;
     private DatabaseReference diagnosisRef;
+    private DatabaseReference matchResultRef;
     private bool isListening = false;
 
-    // Nama obat sesuai urutan model di list
+    // Nama obat disesuaikan dengan urutan di Inspector
     private string[] medicineNames = { 
-        "Paracetamol", "Amoxicillin", "Salbutamol", 
-        "Insulin", "Antasida", "Cetirizine", 
-        "Sirup Ekspektoran", "Ibuprofen" 
+        "Amoxicillin", "Antasida", "Cetirizine", "Ibuprofen", 
+        "Insulin", "Paracetamol", "Salbutamol", "Sirup Ekspektoran" 
     };
 
     void Start()
     {
         UpdateDisplay();
         
-        if (prescribeBtn != null)
-        {
-            prescribeBtn.onClick.AddListener(OnPrescribeClicked);
-        }
+        if (prescribeBtn != null) prescribeBtn.onClick.AddListener(OnPrescribeClicked);
+        if (txtDiagnosis != null) txtDiagnosis.text = "Menunggu diagnosis dokter...";
 
-        if (txtDiagnosis != null)
-        {
-            txtDiagnosis.text = "Menunggu diagnosis dokter...";
-        }
+        // Set Modal awal
+        if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
+        if (btnResultAction != null) btnResultAction.onClick.AddListener(OnResultActionClicked);
 
-        // --- SETUP ROOM ID ---
         InitializeRoomSession();
 
         if (!string.IsNullOrEmpty(currentRoomID))
@@ -67,22 +87,17 @@ public class PrescribeManager : MonoBehaviour
 
     private void InitializeRoomSession()
     {
-        // 1. Cek apakah ada sesi aktif dari Main Menu
         if (!string.IsNullOrEmpty(GameSession.RoomID))
         {
             currentRoomID = GameSession.RoomID;
         }
         else
         {
-            // 2. Jika kosong (mungkin langsung play dari scene ini saat develop)
 #if UNITY_EDITOR
             currentRoomID = "TEST01";
-            Debug.LogWarning("[Pharmath-Dev] Menggunakan Dummy Room ID (TEST01) karena langsung play dari scene.");
+            Debug.LogWarning("[Pharmath-Dev] Menggunakan Dummy Room ID (TEST01).");
 #else
-            // 3. Jika kosong di Build asli, tolak akses.
-            Debug.LogError("[Pharmath-Error] Akses ilegal! Room ID kosong. Pemain harus masuk lewat Main Menu.");
-            // TODO: (Opsional) Lempar pemain kembali ke scene MainMenu
-            // UnityEngine.SceneManagement.SceneManager.LoadScene("MainMenu");
+            Debug.LogError("[Pharmath-Error] Akses ilegal! Room ID kosong.");
 #endif
         }
     }
@@ -106,12 +121,13 @@ public class PrescribeManager : MonoBehaviour
 
         caseRef = rootRef.Child("rooms").Child(currentRoomID).Child("gameplay").Child("current_case");
         diagnosisRef = rootRef.Child("rooms").Child(currentRoomID).Child("gameplay").Child("doctor_diagnosis");
+        matchResultRef = rootRef.Child("rooms").Child(currentRoomID).Child("gameplay").Child("match_result");
 
         caseRef.ValueChanged += HandleCaseChanged;
         diagnosisRef.ValueChanged += HandleDiagnosisChanged;
+        matchResultRef.ValueChanged += HandleMatchResultChanged;
 
         isListening = true;
-        Debug.Log("[Pharmath] PrescribeManager mulai mendengarkan Firebase di Room: " + currentRoomID);
     }
 
     private void HandleCaseChanged(object sender, ValueChangedEventArgs args)
@@ -121,14 +137,11 @@ public class PrescribeManager : MonoBehaviour
         if (args.Snapshot != null && args.Snapshot.Value != null)
         {
             currentActiveCase = args.Snapshot.Value.ToString();
-            Debug.Log("[Pharmath] Apoteker sinkron! Kasus aktif saat ini: " + currentActiveCase);
             
-            // Mapping ID Kasus ke data lokal (case_01 -> index 0)
             int caseIndex = int.Parse(currentActiveCase.Replace("case_", "")) - 1;
             if (caseIndex >= 0 && caseIndex < patientDatabase.Length)
             {
                 activePatient = patientDatabase[caseIndex];
-                Debug.Log("[Pharmath] Data rekam medis dimuat: " + activePatient.patientName);
             }
         }
     }
@@ -140,14 +153,63 @@ public class PrescribeManager : MonoBehaviour
         if (args.Snapshot != null && args.Snapshot.Exists)
         {
             currentDoctorDiagnosis = args.Snapshot.Value.ToString();
-            
-            if (txtDiagnosis != null)
-            {
-                txtDiagnosis.text = "Diagnosis: " + currentDoctorDiagnosis;
-            }
-            
-            Debug.Log("[Pharmath] Diagnosa diterima dari Dokter: " + currentDoctorDiagnosis);
+            if (txtDiagnosis != null) txtDiagnosis.text = "Diagnosis: " + currentDoctorDiagnosis;
         }
+    }
+
+    private void HandleMatchResultChanged(object sender, ValueChangedEventArgs args)
+    {
+        if (args.DatabaseError != null || !args.Snapshot.Exists) return;
+
+        string status = "";
+        string message = "";
+
+        if (args.Snapshot.HasChild("status")) status = args.Snapshot.Child("status").Value.ToString();
+        if (args.Snapshot.HasChild("message")) message = args.Snapshot.Child("message").Value.ToString();
+
+        if (!string.IsNullOrEmpty(status))
+        {
+            ShowResultModal(status, message);
+        }
+    }
+
+    private void ShowResultModal(string status, string message)
+    {
+        if (resultModalCanvas == null) return;
+
+        resultModalCanvas.SetActive(true);
+        if (txtResultMessage != null) txtResultMessage.text = message;
+
+        // --- LOGIKA GANTI GAMBAR SPRITE BERDASARKAN HASIL ---
+        if (status == "win")
+        {
+            if (txtResultStatus != null)
+            {
+                txtResultStatus.text = "PASIEN SEMBUH!";
+                txtResultStatus.color = colorWin;
+            }
+            if (imgResultIcon != null && spriteSuccessIcon != null) imgResultIcon.sprite = spriteSuccessIcon;
+            if (imgBtnAction != null && spriteBtnNext != null) imgBtnAction.sprite = spriteBtnNext;
+        }
+        else if (status == "lose")
+        {
+            if (txtResultStatus != null)
+            {
+                txtResultStatus.text = "MALAPRAKTIK!";
+                txtResultStatus.color = colorLose;
+            }
+            if (imgResultIcon != null && spriteFailIcon != null) imgResultIcon.sprite = spriteFailIcon;
+            if (imgBtnAction != null && spriteBtnRetry != null) imgBtnAction.sprite = spriteBtnRetry;
+        }
+    }
+
+    private void OnResultActionClicked()
+    {
+        if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
+        if (doseInput != null) doseInput.text = "";
+
+        // --- BARU: Membuka kembali Canvas Prescribe agar Apoteker bisa bersiap untuk resep berikutnya atau meracik ulang ---
+        if (canvasPrescribe != null) canvasPrescribe.SetActive(true);
     }
 
     public void NextMedicine()
@@ -177,16 +239,11 @@ public class PrescribeManager : MonoBehaviour
         if (currentIndex >= 0 && currentIndex < medicineModels.Count)
         {
             GameObject modelTarget = medicineModels[currentIndex];
-            
             if (modelTarget != null)
             {
                 modelTarget.SetActive(true);
                 modelTarget.transform.localRotation = Quaternion.identity;
-                
-                if (medicineTitle != null)
-                {
-                    medicineTitle.text = modelTarget.name; 
-                }
+                if (medicineTitle != null) medicineTitle.text = modelTarget.name; 
             }
         }
         
@@ -198,34 +255,24 @@ public class PrescribeManager : MonoBehaviour
         string selectedMedicine = medicineNames[currentIndex];
         string inputDose = doseInput.text;
 
-        if (string.IsNullOrEmpty(inputDose))
-        {
-            Debug.LogWarning("Dosis tidak boleh kosong!");
-            return;
-        }
+        if (string.IsNullOrEmpty(inputDose)) return;
 
-        Debug.Log("Apoteker meracik: " + selectedMedicine + " dengan dosis " + inputDose + " mg");
+        // --- BARU: Tutup Canvas Prescribe otomatis setelah input divalidasi tidak kosong ---
+        if (canvasPrescribe != null) canvasPrescribe.SetActive(false);
+
         CheckValidation(selectedMedicine, inputDose);
     }
 
     private void CheckValidation(string selectedMedicine, string inputDoseStr)
     {
-        if (activePatient == null)
+        if (activePatient == null || !float.TryParse(inputDoseStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float playerDose))
         {
-            Debug.LogError("Data pasien belum dimuat! Dokter harus scan rekam medis dulu.");
-            return;
-        }
-
-        if (!float.TryParse(inputDoseStr, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float playerDose))
-        {
-            Debug.LogWarning("Dosis tidak valid! Gunakan angka (dan titik untuk desimal).");
             return;
         }
 
         string correctDisease = "";
         string correctMedicine = "";
 
-        // Penamaan disesuaikan dengan potongan nama tombol dari DoctorManager (tanpa '_Btn')
         switch (currentActiveCase)
         {
             case "case_01": correctDisease = "Demam"; correctMedicine = "Paracetamol"; break;
@@ -238,36 +285,30 @@ public class PrescribeManager : MonoBehaviour
             case "case_08": correctDisease = "Inflamasi"; correctMedicine = "Ibuprofen"; break;
         }
 
+        // HITUNG DOSIS TARGET LEBIH AWAL AGAR BISA DIKIRIM KE FIREBASE SEBAGAI KUNCI JAWABAN
+        float targetSystemDose = CalculateTargetDose(activePatient, currentActiveCase);
+
         if (currentDoctorDiagnosis != correctDisease)
         {
-            string msg = $"Dokter Salah Diagnosis! Pasien mengidap {correctDisease}, tapi didiagnosis {currentDoctorDiagnosis}.";
-            Debug.Log($"[MALAPRAKTIK] {msg}");
-            SendResultToFirebase("lose", msg);
+            SendResultToFirebase("lose", $"Dokter Salah Diagnosis! Pasien mengidap {correctDisease}, tapi didiagnosis {currentDoctorDiagnosis}.", correctDisease, correctMedicine, targetSystemDose);
             return;
         }
 
         if (selectedMedicine != correctMedicine)
         {
-            string msg = $"Apoteker Salah Obat! Harusnya diberikan {correctMedicine}, tapi diberikan {selectedMedicine}.";
-            Debug.Log($"[MALAPRAKTIK] {msg}");
-            SendResultToFirebase("lose", msg);
+            SendResultToFirebase("lose", $"Apoteker Salah Obat! Harusnya diberikan {correctMedicine}, tapi diberikan {selectedMedicine}.", correctDisease, correctMedicine, targetSystemDose);
             return;
         }
 
-        float targetSystemDose = CalculateTargetDose(activePatient, currentActiveCase);
         float difference = Mathf.Abs(playerDose - targetSystemDose);
         
         if (difference <= 0.5f)
         {
-            string msg = $"Pasien Sembuh! Diagnosis {correctDisease} tepat, obat dan dosis {playerDose} mg akurat.";
-            Debug.Log($"[SUCCESS] {msg}");
-            SendResultToFirebase("win", msg);
+            SendResultToFirebase("win", $"Pasien Sembuh! Diagnosis {correctDisease} tepat, obat dan dosis {playerDose} mg akurat.", correctDisease, correctMedicine, targetSystemDose);
         }
         else
         {
-            string msg = $"Dosis Salah! Input apoteker: {playerDose} mg | Dosis aman seharusnya: {targetSystemDose} mg.";
-            Debug.Log($"[MALAPRAKTIK] {msg}");
-            SendResultToFirebase("lose", msg);
+            SendResultToFirebase("lose", $"Dosis Salah! Input apoteker: {playerDose} mg | Dosis aman seharusnya: {targetSystemDose} mg.", correctDisease, correctMedicine, targetSystemDose);
         }
     }
 
@@ -285,7 +326,6 @@ public class PrescribeManager : MonoBehaviour
                 else if (p.temperature < 38.5f && p.bmi <= 20f) finalDose = baseDose * 0.85f;
                 else finalDose = baseDose;
                 break;
-
             case "case_02":
                 baseDose = ((p.gds - 200f) / 10f) + (p.bmi * 0.5f) + (p.sbp / 100f);
                 if (p.gds > 350) finalDose = (baseDose * 1.5f) + (p.bmi * 0.2f);
@@ -293,7 +333,6 @@ public class PrescribeManager : MonoBehaviour
                 else if (p.gds < 300 && p.sbp > 150) finalDose = baseDose + (p.sbp / 50f);
                 else finalDose = baseDose;
                 break;
-
             case "case_03":
                 baseDose = ((100f - p.spo2) * 2.5f) + (p.rr * 0.8f) + (p.bmi / 5f);
                 if (p.spo2 < 90 && p.rr > 28) finalDose = (baseDose * 1.5f) + (p.hr * 0.1f);
@@ -301,7 +340,6 @@ public class PrescribeManager : MonoBehaviour
                 else if (p.spo2 >= 90 && p.hr > 120) finalDose = baseDose + (p.vas * 1.2f);
                 else finalDose = baseDose;
                 break;
-
             case "case_04":
                 baseDose = (p.wbc / 1000f) + (p.bmi * 1.5f) + (p.temperature * 2f) - 105f;
                 if (p.wbc >= 17000 && p.temperature >= 39.5f) finalDose = (baseDose * 1.6f) + (p.rr * 0.5f);
@@ -309,7 +347,6 @@ public class PrescribeManager : MonoBehaviour
                 else if (p.wbc < 17000 && p.vas >= 5) finalDose = baseDose + (p.hr / 10f);
                 else finalDose = baseDose;
                 break;
-
             case "case_05":
                 baseDose = (p.vas * 4f) + (p.bmi * 0.8f) + (p.sbp / 20f);
                 if (p.vas >= 9 && p.hr >= 105) finalDose = (baseDose * 1.4f) + 6.2f;
@@ -317,7 +354,6 @@ public class PrescribeManager : MonoBehaviour
                 else if (p.vas < 9 && p.bmi <= 20f) finalDose = baseDose * 0.85f;
                 else finalDose = baseDose;
                 break;
-
             case "case_06":
                 baseDose = (p.wbc / 1000f) + (p.bmi * 1.2f) + (p.temperature * 0.5f);
                 if (p.wbc > 10000 && p.hr > 105) finalDose = (baseDose * 1.35f) + 3.8f;
@@ -325,7 +361,6 @@ public class PrescribeManager : MonoBehaviour
                 else if (p.wbc <= 10000 && p.bmi > 23f) finalDose = baseDose + (p.sbp / 50f);
                 else finalDose = baseDose;
                 break;
-
             case "case_07":
                 baseDose = (p.wbc / 1000f) + (p.rr * 1.5f) + (p.temperature * 2f) - 85f;
                 if (p.wbc >= 11000 && p.spo2 < 95) finalDose = (baseDose * 1.4f) + (p.vas * 0.6f);
@@ -333,7 +368,6 @@ public class PrescribeManager : MonoBehaviour
                 else if (p.wbc < 11000 && p.rr > 20) finalDose = baseDose + (p.bmi / 10f);
                 else finalDose = baseDose;
                 break;
-
             case "case_08":
                 baseDose = (p.vas * 5f) + (p.bmi * 0.7f) + (p.sbp / 25f);
                 if (p.vas == 8 && p.bmi >= 28f) finalDose = (baseDose * 1.5f) + (p.bmi * 0.3f);
@@ -346,14 +380,21 @@ public class PrescribeManager : MonoBehaviour
         return (float)System.Math.Round(finalDose, 1);
     }
 
-    private void SendResultToFirebase(string status, string message)
+    private void SendResultToFirebase(string status, string message, string expectedDisease, string expectedMedicine, float expectedDose)
     {
         if (string.IsNullOrEmpty(currentRoomID) || FirebaseManager.Instance == null) return;
 
         DatabaseReference rootRef = FirebaseManager.Instance.DBReference;
+        DatabaseReference matchRef = rootRef.Child("rooms").Child(currentRoomID).Child("gameplay").Child("match_result");
         
-        rootRef.Child("rooms").Child(currentRoomID).Child("gameplay").Child("match_result").Child("status").SetValueAsync(status);
-        rootRef.Child("rooms").Child(currentRoomID).Child("gameplay").Child("match_result").Child("message").SetValueAsync(message);
+        // Data Utama (Untuk UI Game)
+        matchRef.Child("status").SetValueAsync(status);
+        matchRef.Child("message").SetValueAsync(message);
+        
+        // Data Debug (Kunci Jawaban untuk Testing)
+        matchRef.Child("expected_disease").SetValueAsync(expectedDisease);
+        matchRef.Child("expected_medicine").SetValueAsync(expectedMedicine);
+        matchRef.Child("expected_dose").SetValueAsync(expectedDose);
     }
 
     private void OnDestroy()
@@ -362,6 +403,7 @@ public class PrescribeManager : MonoBehaviour
         {
             if (caseRef != null) caseRef.ValueChanged -= HandleCaseChanged;
             if (diagnosisRef != null) diagnosisRef.ValueChanged -= HandleDiagnosisChanged;
+            if (matchResultRef != null) matchResultRef.ValueChanged -= HandleMatchResultChanged;
             isListening = false;
         }
     }
