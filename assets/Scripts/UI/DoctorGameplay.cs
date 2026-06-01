@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI; // Wajib ditambahkan untuk memanggil UI Button
 using Firebase.Database;
+using Firebase.Extensions;
 
 public class DoctorGameplay : MonoBehaviour
 {
@@ -13,7 +14,15 @@ public class DoctorGameplay : MonoBehaviour
 
     void Start()
     {
-        dbRef = FirebaseDatabase.DefaultInstance.RootReference;
+        // Gunakan FirebaseManager jika ada, atau DefaultInstance jika tidak
+        if (FirebaseManager.Instance != null && FirebaseManager.Instance.DBReference != null)
+        {
+            dbRef = FirebaseManager.Instance.DBReference;
+        }
+        else
+        {
+            dbRef = FirebaseDatabase.DefaultInstance.RootReference;
+        }
 
         // --- AMBIL ROOM ID DINAMIS ---
 #if UNITY_EDITOR
@@ -33,6 +42,12 @@ public class DoctorGameplay : MonoBehaviour
     // --- SETUP TOMBOL OTOMATIS ---
     private void SetupDiagnoseButtons()
     {
+        if (diagnoseButtons == null || diagnoseButtons.Length == 0)
+        {
+            Debug.LogWarning("[DoctorGameplay] Array diagnoseButtons kosong! Periksa Inspector.");
+            return;
+        }
+
         foreach (Button btn in diagnoseButtons)
         {
             if (btn != null)
@@ -42,6 +57,7 @@ public class DoctorGameplay : MonoBehaviour
 
                 // Daftarkan aksi ketika tombol ini diklik
                 btn.onClick.AddListener(() => SubmitDiagnosis(diagnosisName));
+                Debug.Log("[DoctorGameplay] Tombol terdaftar: " + diagnosisName);
             }
         }
     }
@@ -60,11 +76,29 @@ public class DoctorGameplay : MonoBehaviour
     // 2. FUNGSI UNTUK MENGIRIM DIAGNOSIS KE FIREBASE
     public void SubmitDiagnosis(string diagnosisName)
     {
-        if (string.IsNullOrEmpty(roomID)) return;
+        if (dbRef == null)
+        {
+            Debug.LogError("[DoctorGameplay] Firebase belum siap!");
+            return;
+        }
+
+        if (string.IsNullOrEmpty(roomID))
+        {
+            Debug.LogError("[DoctorGameplay] RoomID belum diset!");
+            return;
+        }
 
         dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("doctor_diagnosis")
-             .SetValueAsync(diagnosisName);
-             
-        Debug.Log("Dokter mendiagnosis: " + diagnosisName);
+             .SetValueAsync(diagnosisName).ContinueWithOnMainThread(task =>
+             {
+                 if (task.IsFaulted || task.IsCanceled)
+                 {
+                     Debug.LogError("[DoctorGameplay] Gagal kirim diagnosa: " + task.Exception);
+                 }
+                 else
+                 {
+                     Debug.Log("[DoctorGameplay] Diagnosa terkirim: " + diagnosisName);
+                 }
+             });
     }
 }
