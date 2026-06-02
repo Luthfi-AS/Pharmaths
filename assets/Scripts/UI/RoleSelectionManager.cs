@@ -7,12 +7,14 @@ public class RoleSelectionManager : MonoBehaviour
 
     public void SelectDoctor()
     {
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.selectRole);
         GameSession.SelectedRole = PlayerRole.Doctor;
         GoToLobby();
     }
 
     public void SelectPharmacist()
     {
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.selectRole);
         GameSession.SelectedRole = PlayerRole.Pharmacist;
         GoToLobby();
     }

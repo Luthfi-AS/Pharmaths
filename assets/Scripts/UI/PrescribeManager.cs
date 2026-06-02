@@ -180,9 +180,15 @@ public class PrescribeManager : MonoBehaviour
         resultModalCanvas.SetActive(true);
         if (txtResultMessage != null) txtResultMessage.text = message;
 
-        // --- LOGIKA GANTI GAMBAR SPRITE BERDASARKAN HASIL ---
+        // --- LOGIKA GANTI GAMBAR SPRITE & APPLY SFX BERDASARKAN HASIL ---
         if (status == "win")
         {
+            // PENGATURAN SFX: Bunyi sukses karena racikan obat & dosis apoteker tepat!
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySFX(AudioManager.Instance.succeedStatus);
+            }
+
             if (txtResultStatus != null)
             {
                 txtResultStatus.text = "PASIEN SEMBUH!";
@@ -193,6 +199,12 @@ public class PrescribeManager : MonoBehaviour
         }
         else if (status == "lose")
         {
+            // PENGATURAN SFX: Bunyi gagal karena terjadi malapraktik medis!
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.PlaySFX(AudioManager.Instance.failedStatus);
+            }
+
             if (txtResultStatus != null)
             {
                 txtResultStatus.text = "MALAPRAKTIK!";

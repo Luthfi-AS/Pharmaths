@@ -24,6 +24,7 @@ public class LobbyManager : MonoBehaviour
 
     private void Start()
     {
+        AudioManager.Instance.PlayBGM(AudioManager.Instance.bgm2);
         // 1. Inisialisasi UI lokal dengan ID Room dari sesi saat ini
         if (txtRoomId != null) txtRoomId.text = GameSession.RoomID;
 
@@ -158,6 +159,8 @@ public class LobbyManager : MonoBehaviour
 
     private void TransitionToAsymmetricScene()
     {
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.transitionAR);
+
         // Menentukan scene mana yang dimuat berdasarkan peran masing-masing pemain
         if (GameSession.SelectedRole == PlayerRole.Doctor)
         {
