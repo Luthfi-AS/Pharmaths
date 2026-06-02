@@ -254,7 +254,7 @@ public class PrescribeManager : MonoBehaviour
             if (modelTarget != null)
             {
                 modelTarget.SetActive(true);
-                modelTarget.transform.localRotation = Quaternion.identity;
+                // modelTarget.transform.localRotation = Quaternion.identity;
                 if (medicineTitle != null) medicineTitle.text = modelTarget.name; 
             }
         }

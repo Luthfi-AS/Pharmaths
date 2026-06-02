@@ -1,13 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI; 
-using TMPro; // Wajib untuk TextMeshPro
+using TMPro; 
 using Firebase.Database;
 using Firebase.Extensions;
+using System.Collections; // Wajib untuk IEnumerator
 
 public class DoctorGameplay : MonoBehaviour
 {
     [Header("UI Canvas References")]
-    [SerializeField] private GameObject canvasDiagnose; // <-- BARU: Referensi untuk menutup/membuka Canvas Diagnose
+    [SerializeField] private GameObject canvasDiagnose; 
 
     [Header("Diagnose Buttons")]
     [Tooltip("Masukkan semua tombol penyakit dari Canvas di sini")]
@@ -17,7 +18,7 @@ public class DoctorGameplay : MonoBehaviour
     [SerializeField] private GameObject resultModalCanvas;
     [SerializeField] private TextMeshProUGUI txtResultStatus;
     [SerializeField] private TextMeshProUGUI txtResultMessage;
-    [SerializeField] private Button btnCloseModal; // Tombol untuk menutup modal lokal
+    [SerializeField] private Button btnCloseModal; 
     [SerializeField] private Color colorWin = new Color(0.1f, 0.8f, 0.1f);
     [SerializeField] private Color colorLose = Color.red;
 
@@ -32,47 +33,48 @@ public class DoctorGameplay : MonoBehaviour
 
     void Start()
     {
-        if (FirebaseManager.Instance != null && FirebaseManager.Instance.DBReference != null)
-        {
-            dbRef = FirebaseManager.Instance.DBReference;
-        }
-        else
-        {
-            dbRef = FirebaseDatabase.DefaultInstance.RootReference;
-        }
+        // 1. Setup UI Lokal terlebih dahulu agar aman
+        SetupDiagnoseButtons();
 
-#if UNITY_EDITOR
+        if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
+        if (btnCloseModal != null) btnCloseModal.onClick.AddListener(CloseLocalModal);
+
+        #if UNITY_EDITOR
         if (string.IsNullOrEmpty(GameSession.RoomID)) GameSession.RoomID = "TEST01";
-#endif
+        #endif
+        
         roomID = GameSession.RoomID;
 
         if (string.IsNullOrEmpty(roomID))
         {
             Debug.LogError("[DoctorGameplay] Room ID kosong! Pastikan login lewat Main Menu.");
+            return;
         }
 
-        SetupDiagnoseButtons();
+        // 2. Tunggu Firebase siap menggunakan Coroutine (Mencegah kegagalan listener)
+        StartCoroutine(WaitForFirebaseAndListen());
+    }
 
-        // --- SETUP MODAL LOKAL ---
-        if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
-        if (btnCloseModal != null) btnCloseModal.onClick.AddListener(CloseLocalModal);
-
-        // --- MULAI MENDENGARKAN HASIL DARI APOTEKER ---
-        if (!string.IsNullOrEmpty(roomID) && dbRef != null)
+    private IEnumerator WaitForFirebaseAndListen()
+    {
+        Debug.Log("[DoctorGameplay] Menunggu Firebase siap...");
+        while (FirebaseManager.Instance == null || FirebaseManager.Instance.DBReference == null)
         {
-            DatabaseReference matchResultRef = dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("match_result");
-            matchResultRef.ValueChanged += HandleMatchResultChanged;
-            isListening = true;
+            yield return null;
         }
+
+        dbRef = FirebaseManager.Instance.DBReference;
+        Debug.Log("[DoctorGameplay] Firebase siap. Menempelkan listener ke Room: " + roomID);
+
+        // Mulai mendengarkan hasil dari Apoteker
+        DatabaseReference matchResultRef = dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("match_result");
+        matchResultRef.ValueChanged += HandleMatchResultChanged;
+        isListening = true;
     }
 
     private void SetupDiagnoseButtons()
     {
-        if (diagnoseButtons == null || diagnoseButtons.Length == 0)
-        {
-            Debug.LogWarning("[DoctorGameplay] Array diagnoseButtons kosong! Periksa Inspector.");
-            return;
-        }
+        if (diagnoseButtons == null || diagnoseButtons.Length == 0) return;
 
         foreach (Button btn in diagnoseButtons)
         {
@@ -80,7 +82,6 @@ public class DoctorGameplay : MonoBehaviour
             {
                 string diagnosisName = btn.gameObject.name.Replace("_Btn", "");
                 btn.onClick.AddListener(() => SubmitDiagnosis(diagnosisName));
-                Debug.Log("[DoctorGameplay] Tombol terdaftar: " + diagnosisName);
             }
         }
     }
@@ -88,22 +89,17 @@ public class DoctorGameplay : MonoBehaviour
     public void OnMarkerScanned(string caseID)
     {
         if (string.IsNullOrEmpty(roomID) || dbRef == null) return;
-
-        dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("current_case")
-             .SetValueAsync(caseID);
-             
+        
+        dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("current_case").SetValueAsync(caseID);
         Debug.Log("Dokter men-scan: " + caseID);
     }
 
     public void SubmitDiagnosis(string diagnosisName)
     {
-        if (dbRef == null || string.IsNullOrEmpty(roomID))
-        {
-            Debug.LogError("[DoctorGameplay] Firebase/RoomID belum siap!");
-            return;
-        }
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
 
-        // --- BARU: Tutup Canvas Diagnose otomatis setelah tombol ditekan ---
+        if (dbRef == null || string.IsNullOrEmpty(roomID)) return;
+
         if (canvasDiagnose != null) canvasDiagnose.SetActive(false);
 
         dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("doctor_diagnosis")
@@ -122,13 +118,28 @@ public class DoctorGameplay : MonoBehaviour
 
     private void HandleMatchResultChanged(object sender, ValueChangedEventArgs args)
     {
-        if (args.DatabaseError != null || !args.Snapshot.Exists) return;
+        // LOG DIAGNOSA: Ini akan membuktikan apakah Firebase mengirim data ke Dokter atau tidak
+        Debug.Log("[DoctorGameplay] Mendapatkan update data dari 'match_result'!");
+
+        if (args.DatabaseError != null)
+        {
+            Debug.LogError("[DoctorGameplay] Error Database: " + args.DatabaseError.Message);
+            return;
+        }
+
+        if (!args.Snapshot.Exists)
+        {
+            Debug.Log("[DoctorGameplay] Snapshot kosong (mungkin di-reset).");
+            return;
+        }
 
         string status = "";
         string message = "";
 
         if (args.Snapshot.HasChild("status")) status = args.Snapshot.Child("status").Value.ToString();
         if (args.Snapshot.HasChild("message")) message = args.Snapshot.Child("message").Value.ToString();
+
+        Debug.Log($"[DoctorGameplay] Menerima Hasil - Status: {status}, Pesan: {message}");
 
         if (!string.IsNullOrEmpty(status))
         {
@@ -138,13 +149,18 @@ public class DoctorGameplay : MonoBehaviour
 
     private void ShowResultModal(string status, string message)
     {
-        if (resultModalCanvas == null) return;
+        if (resultModalCanvas == null)
+        {
+            Debug.LogError("[DoctorGameplay] GAGAL: resultModalCanvas belum dimasukkan ke Inspector!");
+            return;
+        }
 
         resultModalCanvas.SetActive(true);
         if (txtResultMessage != null) txtResultMessage.text = message;
 
         if (status == "win")
         {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.succeedStatus);
             if (txtResultStatus != null)
             {
                 txtResultStatus.text = "PASIEN SEMBUH!";
@@ -154,6 +170,7 @@ public class DoctorGameplay : MonoBehaviour
         }
         else if (status == "lose")
         {
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.failedStatus);
             if (txtResultStatus != null)
             {
                 txtResultStatus.text = "MALAPRAKTIK!";
@@ -165,9 +182,8 @@ public class DoctorGameplay : MonoBehaviour
 
     private void CloseLocalModal()
     {
+        if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
         if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
-
-        // --- BARU: Membuka kembali Canvas Diagnose agar Dokter bisa siap mendiagnosis rekam medis berikutnya atau merevisi jawaban salah ---
         if (canvasDiagnose != null) canvasDiagnose.SetActive(true);
     }
 
