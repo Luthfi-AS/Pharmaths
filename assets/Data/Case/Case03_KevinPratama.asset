@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eb19f91320c5f74091f7314be71f733, type: 3}
+  m_Name: Case03_KevinPratama
+  m_EditorClassIdentifier: 
+  patientName: Kevin Pratama
+  gender: Laki-laki
+  age: 10
+  sbp: 125
+  dbp: 85
+  hr: 122
+  temperature: 36.8
+  gds: 105
+  spo2: 91
+  rr: 28
+  vas: 5
+  wbc: 8100
+  bmi: 21.2
+  conditionDescription: '"Aduh, dada aku rasanya sesak banget, kayak lagi diikat
+    kencang gitu jadi susah mau ambil napas panjang. Udah gitu, tiap aku napas juga
+    keluar bunyi ''ngik-ngik'' dari dalem dada, kedengeran jelas banget apalagi kalau
+    lagi capek. Benar-benar nggak enak buat gerak atau aktivitas, rasanya megap-megap
+    dan badan jadi lemes semua."'
+  diseaseIdentification: Asma

@@ -13,9 +13,10 @@ public class LobbyManager : MonoBehaviour
     [SerializeField] private GameObject badgeDoctorReady;
     [SerializeField] private GameObject badgePharmacistReady;
 
-    [Header("Asymmetric Scene Settings")]
+    [Header("Scene Settings")]
     [SerializeField] private string doctorSceneName = "DoctorScan";
     [SerializeField] private string pharmacistSceneName = "PharmacistScan";
+    [SerializeField] private string mainMenuSceneName = "MainMenu"; // <-- BARU: Nama scene Main Menu
 
     private string myRolePath;
     private DatabaseReference roomRef;
@@ -23,6 +24,7 @@ public class LobbyManager : MonoBehaviour
 
     private void Start()
     {
+        AudioManager.Instance.PlayBGM(AudioManager.Instance.bgm2);
         // 1. Inisialisasi UI lokal dengan ID Room dari sesi saat ini
         if (txtRoomId != null) txtRoomId.text = GameSession.RoomID;
 
@@ -67,6 +69,19 @@ public class LobbyManager : MonoBehaviour
         roomRef.Child("players").Child(myRolePath).Child("isReady").SetValueAsync(!currentStatus);
     }
 
+    // --- BARU: LOGIKA TOMBOL LEAVE ---
+    public void OnLeaveButtonClicked()
+    {
+        // 1. Hapus data pemain ini dari Firebase agar UI pemain lain ter-update
+        if (roomRef != null && !string.IsNullOrEmpty(myRolePath))
+        {
+            roomRef.Child("players").Child(myRolePath).RemoveValueAsync();
+        }
+
+        // 2. Pindah ke Scene Main Menu (Reset GameSession sudah di-handle di Start MainMenuManager)
+        SceneManager.LoadScene(mainMenuSceneName);
+    }
+
     private void StartListeningForChanges()
     {
         if (isListening) return;
@@ -96,6 +111,12 @@ public class LobbyManager : MonoBehaviour
             doctorReady = (bool)doc.Child("isReady").Value;
             badgeDoctorReady.SetActive(doctorReady);
         }
+        else
+        {
+            // Reset UI jika dokter keluar
+            txtDoctorName.text = "Waiting...";
+            badgeDoctorReady.SetActive(false);
+        }
 
         // Update UI dan status Apoteker
         if (playersSnapshot.HasChild("pharmacist"))
@@ -104,6 +125,12 @@ public class LobbyManager : MonoBehaviour
             txtPharmacistName.text = phar.Child("name").Value.ToString();
             pharmacistReady = (bool)phar.Child("isReady").Value;
             badgePharmacistReady.SetActive(pharmacistReady);
+        }
+        else
+        {
+            // Reset UI jika apoteker keluar
+            txtPharmacistName.text = "Waiting...";
+            badgePharmacistReady.SetActive(false);
         }
 
         // Hanya Host yang memiliki otoritas untuk mengubah status gameStarted di Firebase
@@ -132,6 +159,8 @@ public class LobbyManager : MonoBehaviour
 
     private void TransitionToAsymmetricScene()
     {
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.transitionAR);
+
         // Menentukan scene mana yang dimuat berdasarkan peran masing-masing pemain
         if (GameSession.SelectedRole == PlayerRole.Doctor)
         {

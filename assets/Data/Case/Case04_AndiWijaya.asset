@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eb19f91320c5f74091f7314be71f733, type: 3}
+  m_Name: Case04_AndiWijaya
+  m_EditorClassIdentifier: 
+  patientName: Andi Wijaya
+  gender: Laki-laki
+  age: 28
+  sbp: 108
+  dbp: 65
+  hr: 102
+  temperature: 37.2
+  gds: 90
+  spo2: 99
+  rr: 18
+  vas: 8
+  wbc: 5400
+  bmi: 20.5
+  conditionDescription: '"Dok, tenggorokan saya sakit banget sampai rasanya kayak
+    diiris-iris, apalagi kalau buat menelan, benar-benar menyiksa. Mana badan saya
+    lemas parah, rasanya kayak nggak ada tenaga sama sekali sampai buat berdiri atau
+    jalan ke kamar mandi aja gemeteran. Benar-benar nggak fit, saya cuma butuh sesuatu
+    supaya bisa mendingan karena ini buat gerak sedikit aja susahnya minta ampun."'
+  diseaseIdentification: Infeksi Bakteri

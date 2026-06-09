@@ -1,15 +1,18 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
-using Firebase.Database; // Tambahkan ini
-using Firebase.Extensions; // Tambahkan ini
+using Firebase.Database; 
+using Firebase.Extensions; 
 
 public class MainMenuManager : MonoBehaviour
 {
     [Header("UI References")]
     [SerializeField] private TextMeshProUGUI versionText;
-    [SerializeField] private GameObject modalRoomSelection;
     [SerializeField] private TMP_InputField inputFieldCode;
+    
+    [Header("Modals")]
+    [SerializeField] private GameObject modalRoomSelection;
+    [SerializeField] private GameObject modalAbout; // <-- BARU: Referensi untuk UI Modal About
 
     [Header("Settings")]
     [SerializeField] private string playSceneName = "RoleSelection";
@@ -18,22 +21,49 @@ public class MainMenuManager : MonoBehaviour
     private void Start()
     {
         // Reset data sesi agar bersih setiap kembali ke menu
+        AudioManager.Instance.PlayBGM(AudioManager.Instance.bgm1);
         GameSession.RoomID = "";
         GameSession.IsHost = false;
         GameSession.SelectedRole = PlayerRole.None;
 
         if (versionText != null) versionText.text = buildVersion;
+        
+        // Pastikan semua modal tertutup saat game baru dimulai
         if (modalRoomSelection != null) modalRoomSelection.SetActive(false);
+        if (modalAbout != null) modalAbout.SetActive(false); // <-- BARU
     }
 
-    public void OnPlayButtonClicked() => modalRoomSelection.SetActive(true);
-    public void CloseModal() => modalRoomSelection.SetActive(false);
+    public void OnPlayButtonClicked()
+    {
+        // 1. Putar SFX Klik
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
+        
+        // 2. Tampilkan Modal Room Selection
+        if (modalRoomSelection != null) modalRoomSelection.SetActive(true);
+    }
+
+    // --- BARU: Logika untuk membuka Modal About ---
+    public void OnAboutButtonClicked()
+    {
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
+        
+        if (modalAbout != null) modalAbout.SetActive(true);
+    }
+
+    // --- DIREVISI: Fungsi universal untuk menutup modal mana pun yang sedang terbuka ---
+    public void CloseAllModals() 
+    {
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
+        
+        if (modalRoomSelection != null) modalRoomSelection.SetActive(false);
+        if (modalAbout != null) modalAbout.SetActive(false);
+    }
 
     // --- LOGIKA CREATE ROOM ---
     public void CreateRoom()
     {
         string newRoomID = GenerateRandomCode(6);
-        
+
         // Simpan data ke Static Class
         GameSession.RoomID = newRoomID;
         GameSession.IsHost = true;
@@ -46,6 +76,8 @@ public class MainMenuManager : MonoBehaviour
     {
         if (FirebaseManager.Instance == null || FirebaseManager.Instance.DBReference == null)
         {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.failedStatus);
+            
             Debug.LogError("Gagal Create Room: Firebase belum siap!");
             return;
         }
@@ -58,7 +90,8 @@ public class MainMenuManager : MonoBehaviour
         FirebaseManager.Instance.DBReference
             .Child("rooms").Child(roomCode)
             .Child("metadata")
-            .SetRawJsonValueAsync(json).ContinueWithOnMainThread(task => {
+            .SetRawJsonValueAsync(json).ContinueWithOnMainThread(task =>
+            {
                 if (task.IsFaulted || task.IsCanceled)
                 {
                     Debug.LogError("Gagal mendaftarkan room ke Firebase: " + task.Exception);
@@ -75,12 +108,14 @@ public class MainMenuManager : MonoBehaviour
     public void JoinRoom()
     {
         string enteredCode = inputFieldCode.text.ToUpper();
-    
+
         // Ubah dari >= 4 menjadi == 6 agar sinkron dengan GenerateRandomCode(6)
-        if (enteredCode.Length == 6) 
+        if (enteredCode.Length == 6)
         {
             GameSession.RoomID = enteredCode;
             GameSession.IsHost = false;
+
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.succeedStatus);
 
             Debug.Log($"Mencoba bergabung ke Room: {enteredCode}");
             SceneManager.LoadScene(playSceneName);
@@ -88,6 +123,7 @@ public class MainMenuManager : MonoBehaviour
         else
         {
             // Berikan feedback yang lebih spesifik
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.failedStatus);
             Debug.LogWarning("Kode ruangan harus 6 karakter!");
         }
     }

@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <QCARConfig>
   <Tracking>
-    <ImageTarget name="Target_pasien2" size="0.210000 0.297176" />
-    <ImageTarget name="Target_pasien3" size="0.210000 0.297176" />
-    <ImageTarget name="Target_pasien1" size="0.210000 0.297176" />
+    <ImageTarget name="case5-infeksibakteri" size="0.210000 0.297176" />
+    <ImageTarget name="case4-sesak" size="0.210000 0.297176" />
+    <ImageTarget name="case3-maag" size="0.210000 0.297176" />
+    <ImageTarget name="case2-diabetesmellitus" size="0.210000 0.297176" />
+    <ImageTarget name="case1-demamumum" size="0.210000 0.297176" />
   </Tracking>
 </QCARConfig>

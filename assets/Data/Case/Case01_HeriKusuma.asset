@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9eb19f91320c5f74091f7314be71f733, type: 3}
+  m_Name: Case01_HeriKusuma
+  m_EditorClassIdentifier: 
+  patientName: Heri Kusuma
+  gender: Laki-laki
+  age: 34
+  sbp: 118
+  dbp: 78
+  hr: 92
+  temperature: 38.2
+  gds: 115
+  spo2: 98
+  rr: 18
+  vas: 3
+  wbc: 7500
+  bmi: 22.5
+  conditionDescription: "\u201CSejak bangun tadi pagi, seluruh badan saya rasanya
+    pegal-pegal tidak karuan dan saya merasa kedinginan terus padahal cuaca tidak
+    sedang hujan. Kepala saya juga terasa pening sekali, rasanya berat dan berdenyut-denyut
+    sampai saya sulit untuk fokus melakukan aktivitas. Rasanya badan saya benar-benar
+    tidak fit dan butuh sesuatu untuk meredakan rasa sakit di sekujur tubuh ini.\u201D"
+  diseaseIdentification: Demam Umum

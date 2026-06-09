@@ -6,9 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/SamplesResources/Scenes/0-Main.unity
-    guid: a09cb257d566c489595b16ab37547666
-  - enabled: 1
     path: Assets/Scenes/MainMenu.unity
     guid: 99c9720ab356a0642a771bea13969a05
   - enabled: 1
@@ -23,5 +20,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/PharmacistScan.unity
     guid: 2786eb1ed3404e045bd16d2986e7baa4
+  - enabled: 1
+    path: Assets/Scenes/SummaryScene.unity
+    guid: a1756ef22e4e38c4e868c7dee46e2f45
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

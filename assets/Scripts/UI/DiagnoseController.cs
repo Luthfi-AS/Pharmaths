@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using Firebase.Database;
+using Firebase.Extensions;
 
 public class DiagnoseController : MonoBehaviour
 {
@@ -36,9 +38,36 @@ public class DiagnoseController : MonoBehaviour
     {
         Debug.Log("Dokter mendiagnosa: " + diseaseName);
         
-        // Logika selanjutnya: Mengirim data diseaseName ke Firebase 
-        // agar layar Apoteker bisa tersinkronisasi.
-        
-        CloseDiagnosis();
+        if (FirebaseManager.Instance == null || FirebaseManager.Instance.DBReference == null)
+        {
+            Debug.LogError("Firebase belum siap!");
+            return;
+        }
+
+        string roomId = GameSession.RoomID;
+        if (string.IsNullOrEmpty(roomId))
+        {
+            Debug.LogError("RoomID belum diset!");
+            return;
+        }
+
+        DatabaseReference diagnosisRef = FirebaseManager.Instance.DBReference
+            .Child("rooms")
+            .Child(roomId)
+            .Child("gameplay")
+            .Child("doctor_diagnosis");
+
+        diagnosisRef.SetValueAsync(diseaseName).ContinueWithOnMainThread(task =>
+        {
+            if (task.IsFaulted || task.IsCanceled)
+            {
+                Debug.LogError("Gagal kirim diagnosa ke Firebase: " + task.Exception);
+            }
+            else
+            {
+                Debug.Log("Diagnosa terkirim ke Firebase.");
+                CloseDiagnosis();
+            }
+        });
     }
 }
