@@ -5,11 +5,12 @@ using System.Collections;
 using System.Collections.Generic;
 using Firebase.Database; 
 using Firebase.Extensions; 
+using UnityEngine.SceneManagement; // <-- BARU: Wajib untuk pindah scene
 
 public class PrescribeManager : MonoBehaviour
 {
     [Header("UI References")]
-    [SerializeField] private GameObject canvasPrescribe; // <-- BARU: Referensi untuk menutup Canvas Prescribe
+    [SerializeField] private GameObject canvasPrescribe;
     [SerializeField] private TMP_Text medicineTitle;
     [SerializeField] private TMP_InputField doseInput;
     [SerializeField] private Button prescribeBtn;
@@ -20,22 +21,16 @@ public class PrescribeManager : MonoBehaviour
     [SerializeField] private TextMeshProUGUI txtResultStatus;
     [SerializeField] private TextMeshProUGUI txtResultMessage;
     [SerializeField] private Button btnResultAction;
-    [SerializeField] private Color colorWin = new Color(0.1f, 0.8f, 0.1f); // Hijau
+    [SerializeField] private Color colorWin = new Color(0.1f, 0.8f, 0.1f); 
     [SerializeField] private Color colorLose = Color.red;
 
     [Header("Result Modal UI (Sprites)")]
-    [Tooltip("Komponen Image dari Ikon Result di Canvas")]
     [SerializeField] private Image imgResultIcon;     
-    [Tooltip("Masukkan Sprite Ikon Berhasil (Checklist)")]
     [SerializeField] private Sprite spriteSuccessIcon; 
-    [Tooltip("Masukkan Sprite Ikon Gagal (Silang)")]
     [SerializeField] private Sprite spriteFailIcon;    
     
-    [Tooltip("Komponen Image dari Tombol Action (Lanjut/Ulangi)")]
     [SerializeField] private Image imgBtnAction;      
-    [Tooltip("Masukkan Sprite Tombol Lanjut (Berisi Teks Lanjut)")]
     [SerializeField] private Sprite spriteBtnNext;     
-    [Tooltip("Masukkan Sprite Tombol Ulang (Berisi Teks Ulang)")]
     [SerializeField] private Sprite spriteBtnRetry;    
 
     [Header("3D Model References")]
@@ -44,9 +39,19 @@ public class PrescribeManager : MonoBehaviour
     [SerializeField] private float rotationSpeed = 20f; 
 
     [Header("Patient Database (Local)")]
-    [Tooltip("Masukkan Scriptable Object PatientCaseData secara berurutan (Index 0 = case_01, dst)")]
     [SerializeField] private PatientCaseData[] patientDatabase;
     
+    // --- BARU: Variabel untuk Session Statistics & End Game ---
+    [Header("Session Statistics & End Game")]
+    [SerializeField] private string summarySceneName = "SummaryScene"; // Pastikan nama ini sama dengan di Build Settings
+    [SerializeField] private string finalCaseID = "case_05"; 
+    
+    private int sessionSaved = 0;
+    private int sessionMalpractice = 0;
+    private float sessionStartTime;
+    private string lastResultStatus = "";
+    // ----------------------------------------------------------
+
     // Status Game & Jaringan
     private PatientCaseData activePatient;
     private int currentIndex = 0; 
@@ -68,12 +73,14 @@ public class PrescribeManager : MonoBehaviour
 
     void Start()
     {
+        // --- BARU: Mulai catat waktu saat shift dimulai ---
+        sessionStartTime = Time.time; 
+
         UpdateDisplay();
         
         if (prescribeBtn != null) prescribeBtn.onClick.AddListener(OnPrescribeClicked);
         if (txtDiagnosis != null) txtDiagnosis.text = "Menunggu diagnosis dokter...";
 
-        // Set Modal awal
         if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
         if (btnResultAction != null) btnResultAction.onClick.AddListener(OnResultActionClicked);
 
@@ -177,17 +184,15 @@ public class PrescribeManager : MonoBehaviour
     {
         if (resultModalCanvas == null) return;
 
+        // --- BARU: Simpan status untuk direkap ---
+        lastResultStatus = status;
+
         resultModalCanvas.SetActive(true);
         if (txtResultMessage != null) txtResultMessage.text = message;
 
-        // --- LOGIKA GANTI GAMBAR SPRITE & APPLY SFX BERDASARKAN HASIL ---
         if (status == "win")
         {
-            // PENGATURAN SFX: Bunyi sukses karena racikan obat & dosis apoteker tepat!
-            if (AudioManager.Instance != null)
-            {
-                AudioManager.Instance.PlaySFX(AudioManager.Instance.succeedStatus);
-            }
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.succeedStatus);
 
             if (txtResultStatus != null)
             {
@@ -199,15 +204,11 @@ public class PrescribeManager : MonoBehaviour
         }
         else if (status == "lose")
         {
-            // PENGATURAN SFX: Bunyi gagal karena terjadi malapraktik medis!
-            if (AudioManager.Instance != null)
-            {
-                AudioManager.Instance.PlaySFX(AudioManager.Instance.failedStatus);
-            }
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.failedStatus);
 
             if (txtResultStatus != null)
             {
-                txtResultStatus.text = "MALAPRAKTIK!";
+                txtResultStatus.text = "MALAPRAKTIK";
                 txtResultStatus.color = colorLose;
             }
             if (imgResultIcon != null && spriteFailIcon != null) imgResultIcon.sprite = spriteFailIcon;
@@ -215,13 +216,51 @@ public class PrescribeManager : MonoBehaviour
         }
     }
 
+    // --- BARU: Modifikasi total fungsi OnResultActionClicked ---
     private void OnResultActionClicked()
     {
         if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
         if (doseInput != null) doseInput.text = "";
 
-        // --- BARU: Membuka kembali Canvas Prescribe agar Apoteker bisa bersiap untuk resep berikutnya atau meracik ulang ---
-        if (canvasPrescribe != null) canvasPrescribe.SetActive(true);
+        // 1. Catat Skor ke dalam memori sementara
+        if (lastResultStatus == "win") sessionSaved++;
+        else if (lastResultStatus == "lose") sessionMalpractice++;
+
+        // 2. Cek apakah ini adalah kasus terakhir dan berhasil disembuhkan
+        if (currentActiveCase == finalCaseID && lastResultStatus == "win")
+        {
+            TriggerEndGameSequence();
+        }
+        else
+        {
+            // Jika belum selesai, buka lagi Canvas Prescribe
+            if (canvasPrescribe != null) canvasPrescribe.SetActive(true);
+        }
+    }
+
+    // --- BARU: Fungsi Trigger End Game ---
+    private void TriggerEndGameSequence()
+    {
+        Debug.Log("[Pharmath] Seluruh Kasus Selesai! Mengkalkulasi Skor...");
+
+        // 1. Hitung Rata-rata Waktu
+        float totalTime = Time.time - sessionStartTime;
+        float avgTime = totalTime / 5f; 
+
+        // 2. Simpan Data ke PlayerPrefs
+        PlayerPrefs.SetInt("TotalSaved", sessionSaved);
+        PlayerPrefs.SetInt("TotalMalpractice", sessionMalpractice);
+        PlayerPrefs.SetFloat("AverageTime", avgTime);
+        PlayerPrefs.Save();
+
+        // 3. Bersihkan Sesi Firebase
+        if (GameSession.IsHost && !string.IsNullOrEmpty(currentRoomID) && FirebaseManager.Instance != null)
+        {
+            FirebaseManager.Instance.DBReference.Child("rooms").Child(currentRoomID).RemoveValueAsync();
+        }
+
+        // 4. Pindah ke Scene Summary
+        SceneManager.LoadScene(summarySceneName);
     }
 
     public void NextMedicine()
@@ -269,7 +308,6 @@ public class PrescribeManager : MonoBehaviour
 
         if (string.IsNullOrEmpty(inputDose)) return;
 
-        // --- BARU: Tutup Canvas Prescribe otomatis setelah input divalidasi tidak kosong ---
         if (canvasPrescribe != null) canvasPrescribe.SetActive(false);
 
         CheckValidation(selectedMedicine, inputDose);
@@ -297,7 +335,6 @@ public class PrescribeManager : MonoBehaviour
             case "case_08": correctDisease = "Inflamasi"; correctMedicine = "Ibuprofen"; break;
         }
 
-        // HITUNG DOSIS TARGET LEBIH AWAL AGAR BISA DIKIRIM KE FIREBASE SEBAGAI KUNCI JAWABAN
         float targetSystemDose = CalculateTargetDose(activePatient, currentActiveCase);
 
         if (currentDoctorDiagnosis != correctDisease)
@@ -399,11 +436,9 @@ public class PrescribeManager : MonoBehaviour
         DatabaseReference rootRef = FirebaseManager.Instance.DBReference;
         DatabaseReference matchRef = rootRef.Child("rooms").Child(currentRoomID).Child("gameplay").Child("match_result");
         
-        // Data Utama (Untuk UI Game)
         matchRef.Child("status").SetValueAsync(status);
         matchRef.Child("message").SetValueAsync(message);
         
-        // Data Debug (Kunci Jawaban untuk Testing)
         matchRef.Child("expected_disease").SetValueAsync(expectedDisease);
         matchRef.Child("expected_medicine").SetValueAsync(expectedMedicine);
         matchRef.Child("expected_dose").SetValueAsync(expectedDose);

@@ -1,15 +1,18 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
-using Firebase.Database; // Tambahkan ini
-using Firebase.Extensions; // Tambahkan ini
+using Firebase.Database; 
+using Firebase.Extensions; 
 
 public class MainMenuManager : MonoBehaviour
 {
     [Header("UI References")]
     [SerializeField] private TextMeshProUGUI versionText;
-    [SerializeField] private GameObject modalRoomSelection;
     [SerializeField] private TMP_InputField inputFieldCode;
+    
+    [Header("Modals")]
+    [SerializeField] private GameObject modalRoomSelection;
+    [SerializeField] private GameObject modalAbout; // <-- BARU: Referensi untuk UI Modal About
 
     [Header("Settings")]
     [SerializeField] private string playSceneName = "RoleSelection";
@@ -24,23 +27,38 @@ public class MainMenuManager : MonoBehaviour
         GameSession.SelectedRole = PlayerRole.None;
 
         if (versionText != null) versionText.text = buildVersion;
+        
+        // Pastikan semua modal tertutup saat game baru dimulai
         if (modalRoomSelection != null) modalRoomSelection.SetActive(false);
+        if (modalAbout != null) modalAbout.SetActive(false); // <-- BARU
     }
 
-   public void OnPlayButtonClicked()
+    public void OnPlayButtonClicked()
     {
         // 1. Putar SFX Klik
         AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
         
         // 2. Tampilkan Modal Room Selection
-        modalRoomSelection.SetActive(true);
+        if (modalRoomSelection != null) modalRoomSelection.SetActive(true);
     }
-    public void CloseModal() 
+
+    // --- BARU: Logika untuk membuka Modal About ---
+    public void OnAboutButtonClicked()
     {
-        // Tambahin SFX klik juga pas nutup modal biar konsisten, boss!
         AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
-        modalRoomSelection.SetActive(false);
+        
+        if (modalAbout != null) modalAbout.SetActive(true);
     }
+
+    // --- DIREVISI: Fungsi universal untuk menutup modal mana pun yang sedang terbuka ---
+    public void CloseAllModals() 
+    {
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
+        
+        if (modalRoomSelection != null) modalRoomSelection.SetActive(false);
+        if (modalAbout != null) modalAbout.SetActive(false);
+    }
+
     // --- LOGIKA CREATE ROOM ---
     public void CreateRoom()
     {

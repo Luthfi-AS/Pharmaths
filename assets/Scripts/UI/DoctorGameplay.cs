@@ -3,7 +3,8 @@ using UnityEngine.UI;
 using TMPro; 
 using Firebase.Database;
 using Firebase.Extensions;
-using System.Collections; // Wajib untuk IEnumerator
+using System.Collections; 
+using UnityEngine.SceneManagement; // <-- BARU: Wajib untuk pindah scene
 
 public class DoctorGameplay : MonoBehaviour
 {
@@ -27,13 +28,27 @@ public class DoctorGameplay : MonoBehaviour
     [SerializeField] private Sprite spriteSuccessIcon; 
     [SerializeField] private Sprite spriteFailIcon;    
 
+    // --- BARU: Variabel untuk Session Statistics & End Game ---
+    [Header("Session Statistics & End Game")]
+    [SerializeField] private string summarySceneName = "SummaryScene";
+    [SerializeField] private string finalCaseID = "case_05"; 
+    
+    private int sessionSaved = 0;
+    private int sessionMalpractice = 0;
+    private float sessionStartTime;
+    private string lastResultStatus = "";
+    private string currentActiveCase = ""; // Untuk mengingat pasien mana yang sedang di-scan Dokter
+    // ----------------------------------------------------------
+
     private DatabaseReference dbRef;
     private string roomID;
     private bool isListening = false;
 
     void Start()
     {
-        // 1. Setup UI Lokal terlebih dahulu agar aman
+        // --- BARU: Mulai catat waktu saat shift Dokter dimulai ---
+        sessionStartTime = Time.time;
+
         SetupDiagnoseButtons();
 
         if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
@@ -51,7 +66,6 @@ public class DoctorGameplay : MonoBehaviour
             return;
         }
 
-        // 2. Tunggu Firebase siap menggunakan Coroutine (Mencegah kegagalan listener)
         StartCoroutine(WaitForFirebaseAndListen());
     }
 
@@ -66,7 +80,6 @@ public class DoctorGameplay : MonoBehaviour
         dbRef = FirebaseManager.Instance.DBReference;
         Debug.Log("[DoctorGameplay] Firebase siap. Menempelkan listener ke Room: " + roomID);
 
-        // Mulai mendengarkan hasil dari Apoteker
         DatabaseReference matchResultRef = dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("match_result");
         matchResultRef.ValueChanged += HandleMatchResultChanged;
         isListening = true;
@@ -90,6 +103,9 @@ public class DoctorGameplay : MonoBehaviour
     {
         if (string.IsNullOrEmpty(roomID) || dbRef == null) return;
         
+        // --- BARU: Catat ID pasien secara lokal agar Dokter tahu ini kasus ke berapa ---
+        currentActiveCase = caseID;
+
         dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("current_case").SetValueAsync(caseID);
         Debug.Log("Dokter men-scan: " + caseID);
     }
@@ -118,28 +134,16 @@ public class DoctorGameplay : MonoBehaviour
 
     private void HandleMatchResultChanged(object sender, ValueChangedEventArgs args)
     {
-        // LOG DIAGNOSA: Ini akan membuktikan apakah Firebase mengirim data ke Dokter atau tidak
         Debug.Log("[DoctorGameplay] Mendapatkan update data dari 'match_result'!");
 
-        if (args.DatabaseError != null)
-        {
-            Debug.LogError("[DoctorGameplay] Error Database: " + args.DatabaseError.Message);
-            return;
-        }
-
-        if (!args.Snapshot.Exists)
-        {
-            Debug.Log("[DoctorGameplay] Snapshot kosong (mungkin di-reset).");
-            return;
-        }
+        if (args.DatabaseError != null) return;
+        if (!args.Snapshot.Exists) return;
 
         string status = "";
         string message = "";
 
         if (args.Snapshot.HasChild("status")) status = args.Snapshot.Child("status").Value.ToString();
         if (args.Snapshot.HasChild("message")) message = args.Snapshot.Child("message").Value.ToString();
-
-        Debug.Log($"[DoctorGameplay] Menerima Hasil - Status: {status}, Pesan: {message}");
 
         if (!string.IsNullOrEmpty(status))
         {
@@ -149,11 +153,10 @@ public class DoctorGameplay : MonoBehaviour
 
     private void ShowResultModal(string status, string message)
     {
-        if (resultModalCanvas == null)
-        {
-            Debug.LogError("[DoctorGameplay] GAGAL: resultModalCanvas belum dimasukkan ke Inspector!");
-            return;
-        }
+        if (resultModalCanvas == null) return;
+
+        // --- BARU: Simpan status untuk direkap ---
+        lastResultStatus = status;
 
         resultModalCanvas.SetActive(true);
         if (txtResultMessage != null) txtResultMessage.text = message;
@@ -173,18 +176,45 @@ public class DoctorGameplay : MonoBehaviour
             if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.failedStatus);
             if (txtResultStatus != null)
             {
-                txtResultStatus.text = "MALAPRAKTIK!";
+                txtResultStatus.text = "MALAPRAKTIK";
                 txtResultStatus.color = colorLose;
             }
             if (imgResultIcon != null && spriteFailIcon != null) imgResultIcon.sprite = spriteFailIcon;
         }
     }
 
+    // --- BARU: Modifikasi total fungsi Close Modal ---
     private void CloseLocalModal()
     {
         if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
-        if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
-        if (canvasDiagnose != null) canvasDiagnose.SetActive(true);
+        
+        // 1. Catat Skor ke dalam memori sementara
+        if (lastResultStatus == "win") sessionSaved++;
+        else if (lastResultStatus == "lose") sessionMalpractice++;
+
+        // 2. Cek apakah ini adalah kasus terakhir dan berhasil disembuhkan
+        if (currentActiveCase == finalCaseID && lastResultStatus == "win")
+        {
+            Debug.Log("[DoctorGameplay] Shift Selesai! Mengkalkulasi Skor Dokter...");
+
+            float totalTime = Time.time - sessionStartTime;
+            float avgTime = totalTime / 5f; 
+
+            // Simpan Data ke PlayerPrefs untuk dibaca oleh SummaryManager di HP Dokter
+            PlayerPrefs.SetInt("TotalSaved", sessionSaved);
+            PlayerPrefs.SetInt("TotalMalpractice", sessionMalpractice);
+            PlayerPrefs.SetFloat("AverageTime", avgTime);
+            PlayerPrefs.Save();
+
+            // Pindah ke Scene Summary
+            SceneManager.LoadScene(summarySceneName);
+        }
+        else
+        {
+            // Jika belum selesai, tutup modal dan buka lagi panel diagnosa
+            if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
+            if (canvasDiagnose != null) canvasDiagnose.SetActive(true);
+        }
     }
 
     private void OnDestroy()
