@@ -4,12 +4,19 @@ using TMPro;
 using Firebase.Database;
 using Firebase.Extensions;
 using System.Collections; 
-using UnityEngine.SceneManagement; // <-- BARU: Wajib untuk pindah scene
+using UnityEngine.SceneManagement;
 
 public class DoctorGameplay : MonoBehaviour
 {
     [Header("UI Canvas References")]
     [SerializeField] private GameObject canvasDiagnose; 
+
+    // --- BARU: Referensi elemen UI secara individu (Flat Hierarchy) ---
+    [Header("Scanning UI Elements")]
+    [SerializeField] private GameObject scanFrame;
+    [SerializeField] private GameObject txtInstruction;
+    [SerializeField] private GameObject btnManualBook;
+    [SerializeField] private GameObject btnDiagnoseHud;
 
     [Header("Diagnose Buttons")]
     [Tooltip("Masukkan semua tombol penyakit dari Canvas di sini")]
@@ -43,13 +50,20 @@ public class DoctorGameplay : MonoBehaviour
     private DatabaseReference dbRef;
     private string roomID;
     private bool isListening = false;
+    private bool hasScannedAnyMarker = false; // Penanda agar UI Scan hanya hilang sekali
 
     void Start()
     {
-        // --- BARU: Mulai catat waktu saat shift Dokter dimulai ---
+        // Mulai catat waktu saat shift Dokter dimulai
         sessionStartTime = Time.time;
 
         SetupDiagnoseButtons();
+
+        // Di awal, nyalakan elemen instruksi scan, matikan tombol HUD
+        if (scanFrame != null) scanFrame.SetActive(true);
+        if (txtInstruction != null) txtInstruction.SetActive(true);
+        if (btnManualBook != null) btnManualBook.SetActive(false);
+        if (btnDiagnoseHud != null) btnDiagnoseHud.SetActive(false);
 
         if (resultModalCanvas != null) resultModalCanvas.SetActive(false);
         if (btnCloseModal != null) btnCloseModal.onClick.AddListener(CloseLocalModal);
@@ -101,9 +115,20 @@ public class DoctorGameplay : MonoBehaviour
 
     public void OnMarkerScanned(string caseID)
     {
+        // Jika ini scan pertama kali, matikan frame scan dan nyalakan tombol HUD permanen
+        if (!hasScannedAnyMarker)
+        {
+            if (scanFrame != null) scanFrame.SetActive(false);
+            if (txtInstruction != null) txtInstruction.SetActive(false);
+            
+            if (btnManualBook != null) btnManualBook.SetActive(true);
+            if (btnDiagnoseHud != null) btnDiagnoseHud.SetActive(true);
+            
+            hasScannedAnyMarker = true; 
+        }
+
         if (string.IsNullOrEmpty(roomID) || dbRef == null) return;
         
-        // --- BARU: Catat ID pasien secara lokal agar Dokter tahu ini kasus ke berapa ---
         currentActiveCase = caseID;
 
         dbRef.Child("rooms").Child(roomID).Child("gameplay").Child("current_case").SetValueAsync(caseID);
@@ -155,7 +180,6 @@ public class DoctorGameplay : MonoBehaviour
     {
         if (resultModalCanvas == null) return;
 
-        // --- BARU: Simpan status untuk direkap ---
         lastResultStatus = status;
 
         resultModalCanvas.SetActive(true);
@@ -183,7 +207,6 @@ public class DoctorGameplay : MonoBehaviour
         }
     }
 
-    // --- BARU: Modifikasi total fungsi Close Modal ---
     private void CloseLocalModal()
     {
         if (AudioManager.Instance != null) AudioManager.Instance.PlaySFX(AudioManager.Instance.clickGeneral);
@@ -226,4 +249,5 @@ public class DoctorGameplay : MonoBehaviour
             isListening = false;
         }
     }
+    
 }
