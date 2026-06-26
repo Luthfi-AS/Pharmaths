@@ -338,7 +338,7 @@ public class PrescribeManager : MonoBehaviour
         float targetSystemDose = CalculateTargetDose(activePatient, currentActiveCase);
 
         if (currentDoctorDiagnosis != correctDisease)
-        {
+        {0
             SendResultToFirebase("lose", $"Dokter Salah Diagnosis! Pasien mengidap {correctDisease}, tapi didiagnosis {currentDoctorDiagnosis}.", correctDisease, correctMedicine, targetSystemDose);
             return;
         }
