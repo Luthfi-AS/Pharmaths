@@ -294,7 +294,7 @@ PlayerSettings:
   - m_BuildTarget: 
     m_Icons:
     - serializedVersion: 2
-      m_Icon: {fileID: 2800000, guid: 28891c5eccec133469b7570d21897457, type: 3}
+      m_Icon: {fileID: 2800000, guid: e1666ba85827ce74c830db4cf3ad414e, type: 3}
       m_Width: 128
       m_Height: 128
       m_Kind: 0
@@ -305,84 +305,84 @@ PlayerSettings:
       - {fileID: 2800000, guid: b15ee11232b424d68898398fe3cab2d0, type: 3}
       m_Width: 192
       m_Height: 192
-      m_Kind: 0
+      m_Kind: 1
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: fe689abc1067e4869a58c87d14482078, type: 3}
       m_Width: 144
       m_Height: 144
-      m_Kind: 0
+      m_Kind: 1
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: 827b731c62d8d42c093899fa44179bb2, type: 3}
       m_Width: 96
       m_Height: 96
-      m_Kind: 0
+      m_Kind: 1
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: d85ccead4ae714b0682b281b94267e7f, type: 3}
       m_Width: 72
       m_Height: 72
-      m_Kind: 0
+      m_Kind: 1
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: 6fae8ff752f494bacb3c562bed7dea2d, type: 3}
       m_Width: 48
       m_Height: 48
-      m_Kind: 0
+      m_Kind: 1
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: 98e9bf2eec31e492d858fd08e8223ca4, type: 3}
       m_Width: 36
       m_Height: 36
-      m_Kind: 0
+      m_Kind: 1
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: b15ee11232b424d68898398fe3cab2d0, type: 3}
       m_Width: 192
       m_Height: 192
-      m_Kind: 1
+      m_Kind: 0
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: fe689abc1067e4869a58c87d14482078, type: 3}
       m_Width: 144
       m_Height: 144
-      m_Kind: 1
+      m_Kind: 0
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: 827b731c62d8d42c093899fa44179bb2, type: 3}
       m_Width: 96
       m_Height: 96
-      m_Kind: 1
+      m_Kind: 0
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: d85ccead4ae714b0682b281b94267e7f, type: 3}
       m_Width: 72
       m_Height: 72
-      m_Kind: 1
+      m_Kind: 0
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: 6fae8ff752f494bacb3c562bed7dea2d, type: 3}
       m_Width: 48
       m_Height: 48
-      m_Kind: 1
+      m_Kind: 0
       m_SubKind: 
     - m_Textures:
       - {fileID: 2800000, guid: 98e9bf2eec31e492d858fd08e8223ca4, type: 3}
       m_Width: 36
       m_Height: 36
-      m_Kind: 1
+      m_Kind: 0
       m_SubKind: 
     - m_Textures:
-      - {fileID: 2800000, guid: 17890dd0942584ef7b1886ffc15250a1, type: 3}
-      - {fileID: 2800000, guid: 44f5763023bff4d3dbfb13b858cff6ce, type: 3}
+      - {fileID: 2800000, guid: a7a9756aa36c37d4e83ee1f1ef5030ec, type: 3}
+      - {fileID: 2800000, guid: e1666ba85827ce74c830db4cf3ad414e, type: 3}
       m_Width: 432
       m_Height: 432
       m_Kind: 2
       m_SubKind: 
     - m_Textures:
-      - {fileID: 2800000, guid: 2c78137d6929a46249f124bad6c3c8a8, type: 3}
-      - {fileID: 2800000, guid: b4f6488d420d24b3fa919a0d3a53bcf2, type: 3}
+      - {fileID: 2800000, guid: f78d294d84965b4499bb92e3afc4a6a2, type: 3}
+      - {fileID: 2800000, guid: 2d32091c004b5984ca21f22a7edef740, type: 3}
       m_Width: 324
       m_Height: 324
       m_Kind: 2
@@ -973,7 +973,6 @@ PlayerSettings:
   syncCapabilities: 0
   platformCapabilities:
     WindowsStoreApps:
-      EnterpriseAuthentication: False
       OfflineMapsManagement: False
       HumanInterfaceDevice: False
       Location: False
@@ -986,6 +985,7 @@ PlayerSettings:
       InternetClientServer: False
       VideosLibrary: False
       Objects3D: False
+      InternetClient: True
       RemoteSystem: False
       BlockedChatMessages: False
       PhoneCall: False
@@ -1006,10 +1006,10 @@ PlayerSettings:
       PointOfService: False
       RecordedCallsFolder: False
       Contacts: False
-      InternetClient: True
+      Proximity: False
       CodeGeneration: False
       BackgroundMediaPlayback: False
-      Proximity: False
+      EnterpriseAuthentication: False
   metroTargetDeviceFamilies:
     Desktop: False
     Holographic: False
